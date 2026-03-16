@@ -5,7 +5,6 @@ from urllib.parse import quote
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# Coordenadas dos estados brasileiros
 COORDENADAS_ESTADOS = {
     'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
     'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
@@ -19,12 +18,12 @@ COORDENADAS_ESTADOS = {
 }
 
 @st.cache_data
-def carregar_dados(nome_aba):
+def carregar_dados(nome_aba, skip_rows=0):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
     aba_codificada = quote(nome_aba)
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
-    # Lemos sem cabeçalho automático para evitar deslocamento de dados
-    return pd.read_csv(url, header=None)
+    # Pulamos as linhas iniciais se necessário para evitar que o título vire dado
+    return pd.read_csv(url, skiprows=skip_rows)
 
 # --- CABEÇALHO ---
 with st.container():
@@ -36,20 +35,21 @@ with st.container():
     st.write("---")
     st.subheader("📋 Informações Gerais")
     try:
-        df_raw = carregar_dados("Dashboard")
+        # Aqui está o truque: pulamos a 1ª linha (o título) para o pandas ler os dados certos
+        df_dash = carregar_dados("Dashboard", skip_rows=1)
         
-        # Na sua imagem, os dados começam na linha 1 (índice 1) e as colunas são A(0), B(1), C(2)
-        # Vamos pegar da linha 1 até a 5 e as colunas A e C
-        df_gerais = df_raw.iloc[1:6, [0, 2]].copy()
+        # Agora pegamos as colunas certas (A e C da planilha original)
+        # O pandas verá a Coluna A como índice 0 e a Coluna C como índice 2
+        df_final = df_dash.iloc[0:5, [0, 2]].copy()
         
-        # Definindo o cabeçalho exatamente como na imagem
-        df_gerais.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
+        # Nomeamos as colunas manualmente para ficar bonito no Streamlit
+        df_final.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
         
-        # Exibe como tabela limpa
-        st.table(df_gerais)
+        # st.table força o visual limpo, sem barras de rolagem estranhas
+        st.table(df_final)
         
     except Exception as e:
-        st.error(f"Erro ao carregar Informações Gerais: {e}")
+        st.error(f"Erro ao organizar os dados: {e}")
 
 # --- SEÇÃO 2: MAPA ---
 with st.container():
@@ -57,10 +57,9 @@ with st.container():
     st.subheader("🗺️ Em qual estado a empresa atua principalmente")
     
     try:
+        # Para a aba de respostas, não pulamos linhas para não perder o cabeçalho do Forms
         df_respostas = carregar_dados("Respostas ao formulário 1")
-        # Coluna M no formulário costuma ser o índice 12
-        # Como usamos header=None, a primeira linha é o cabeçalho, então pegamos do índice 1 em diante
-        estados_serie = df_respostas.iloc[1:, 12].dropna()
+        estados_serie = df_respostas.iloc[:, 12].dropna()
 
         pontos_validos = []
         for estado in estados_serie:
@@ -71,10 +70,10 @@ with st.container():
             df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
             st.map(df_mapa)
         else:
-            st.info("Aguardando dados geográficos.")
+            st.info("Aguardando novas localizações.")
             
     except Exception as e:
-        st.error(f"Erro ao processar o mapa: {e}")
+        st.error(f"Erro no mapa: {e}")
 
 with st.container():
     st.write("---")
