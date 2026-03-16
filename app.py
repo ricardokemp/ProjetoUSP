@@ -18,12 +18,11 @@ COORDENADAS_ESTADOS = {
 }
 
 @st.cache_data
-def carregar_dados(nome_aba, skip_rows=0):
+def carregar_dados(nome_aba, cabecalho=0):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
     aba_codificada = quote(nome_aba)
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
-    # Pulamos as linhas iniciais se necessário para evitar que o título vire dado
-    return pd.read_csv(url, skiprows=skip_rows)
+    return pd.read_csv(url, header=cabecalho)
 
 # --- CABEÇALHO ---
 with st.container():
@@ -35,17 +34,18 @@ with st.container():
     st.write("---")
     st.subheader("📋 Informações Gerais")
     try:
-        # Aqui está o truque: pulamos a 1ª linha (o título) para o pandas ler os dados certos
-        df_dash = carregar_dados("Dashboard", skip_rows=1)
+        # header=0 carrega a primeira linha como título
+        df_dash = carregar_dados("Dashboard", cabecalho=0)
         
-        # Agora pegamos as colunas certas (A e C da planilha original)
-        # O pandas verá a Coluna A como índice 0 e a Coluna C como índice 2
+        # O truque: A pergunta está na verdade no NOME da coluna 0
+        pergunta = df_dash.columns[0]
+        
+        # Criamos o dataframe final pegando os dados das linhas e colunas 0 e 2
+        # Selecionamos as 5 opções de resposta
         df_final = df_dash.iloc[0:5, [0, 2]].copy()
+        df_final.columns = [pergunta, "%"]
         
-        # Nomeamos as colunas manualmente para ficar bonito no Streamlit
-        df_final.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
-        
-        # st.table força o visual limpo, sem barras de rolagem estranhas
+        # Exibe como tabela estática para manter a formatação da imagem
         st.table(df_final)
         
     except Exception as e:
@@ -57,8 +57,8 @@ with st.container():
     st.subheader("🗺️ Em qual estado a empresa atua principalmente")
     
     try:
-        # Para a aba de respostas, não pulamos linhas para não perder o cabeçalho do Forms
         df_respostas = carregar_dados("Respostas ao formulário 1")
+        # Coluna M (índice 12)
         estados_serie = df_respostas.iloc[:, 12].dropna()
 
         pontos_validos = []
@@ -70,7 +70,7 @@ with st.container():
             df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
             st.map(df_mapa)
         else:
-            st.info("Aguardando novas localizações.")
+            st.info("Aguardando dados geográficos.")
             
     except Exception as e:
         st.error(f"Erro no mapa: {e}")
