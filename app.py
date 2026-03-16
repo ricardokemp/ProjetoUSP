@@ -47,11 +47,16 @@ with st.container():
         df_setor.columns = ["Qual o setor de atuação principal da empresa", "%"]
         st.table(df_setor)
 
-        # TABELA 3: Tamanho da Empresa (Colunas G e I -> Índices 6 e 8)
-        # Pegamos as 4 categorias (Micro, Pequena, Média, Grande)
+        # TABELA 3: Tamanho da Empresa (Colunas G e I)
         df_tamanho = df_aba_info.iloc[0:4, [6, 8]].copy()
         df_tamanho.columns = ["Qual o tamanho aproximado da empresa", "%"]
         st.table(df_tamanho)
+
+        # TABELA 4: Localização (Colunas J e L -> Índices 9 e 11)
+        # Pegamos as linhas com dados de estados (ajustado para até 10 linhas, conforme necessário)
+        df_local = df_aba_info.iloc[0:10, [9, 11]].dropna(subset=[df_aba_info.columns[9]])
+        df_local.columns = ["Em qual estado", "%"]
+        st.table(df_local)
         
     except Exception as e:
         st.error(f"Erro ao carregar os dados das tabelas: {e}")
