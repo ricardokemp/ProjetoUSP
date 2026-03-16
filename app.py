@@ -5,7 +5,7 @@ from urllib.parse import quote
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# Coordenadas dos estados
+# Coordenadas dos estados para o mapa
 COORDENADAS_ESTADOS = {
     'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
     'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
@@ -30,29 +30,30 @@ with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
 
-# --- SEÇÃO 1: INFORMAÇÕES GERAIS ---
+# --- SEÇÃO: INFORMAÇÕES GERAIS ---
 with st.container():
     st.write("---")
     st.subheader("📋 Informações Gerais")
     try:
-        # Carrega diretamente da aba "Informações Gerais" conforme sua imagem
         df_aba_info = carregar_dados("Informações Gerais")
         
-        # Na sua planilha, a pergunta está na Coluna A e o % na Coluna C
-        # Vamos pegar as colunas pelos índices para não errar o nome
-        # Linhas de 0 a 4 (são as 5 opções de adoção)
-        df_display = df_aba_info.iloc[0:5, [0, 2]].copy()
-        
-        # Forçamos os nomes das colunas para bater com a imagem
-        df_display.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
-        
-        # st.table mantém a aparência estática e limpa do Excel
-        st.table(df_display)
+        # TABELA 1: Gêmeos Digitais (Colunas A e C -> Índices 0 e 2)
+        df_gemeos = df_aba_info.iloc[0:5, [0, 2]].copy()
+        df_gemeos.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
+        st.table(df_gemeos)
+
+        st.write("") # Espaçamento entre tabelas
+
+        # TABELA 2: Setor de Atuação (Colunas D e F -> Índices 3 e 5)
+        # Pegamos as 7 linhas de setores conforme a imagem (Energia até Outro)
+        df_setor = df_aba_info.iloc[0:7, [3, 5]].copy()
+        df_setor.columns = ["Qual o setor de atuação principal da empresa", "%"]
+        st.table(df_setor)
         
     except Exception as e:
-        st.error(f"Erro ao carregar Informações Gerais: {e}")
+        st.error(f"Erro ao carregar os dados das tabelas: {e}")
 
-# --- SEÇÃO 2: MAPA ---
+# --- SEÇÃO: MAPA ---
 with st.container():
     st.write("---")
     st.subheader("🗺️ Em qual estado a empresa atua principalmente")
@@ -71,10 +72,10 @@ with st.container():
             df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
             st.map(df_mapa)
         else:
-            st.info("Aguardando novas localizações.")
+            st.info("Aguardando novas localizações para o mapa.")
             
     except Exception as e:
-        st.error(f"Erro no mapa: {e}")
+        st.error(f"Erro ao processar o mapa: {e}")
 
 with st.container():
     st.write("---")
