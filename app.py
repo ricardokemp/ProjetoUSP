@@ -5,7 +5,7 @@ from urllib.parse import quote
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# Coordenadas para o mapa
+# Coordenadas dos estados para o mapa
 COORDENADAS_ESTADOS = {
     'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
     'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
@@ -29,45 +29,36 @@ def carregar_dados(nome_aba):
 with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
-    st.write("Monitoramento de adoção de tecnologia e atuação geográfica.")
+    st.write("Acompanhamento do nível de maturidade em Gêmeos Digitais e distribuição geográfica.")
 
-# --- SEÇÃO 1: INFORMAÇÕES GERAIS (Colunas A e C) ---
+# --- SEÇÃO 1: INFORMAÇÕES GERAIS ---
 with st.container():
     st.write("---")
     st.subheader("📋 Informações Gerais")
     try:
-        df_dash_raw = carregar_dados("Dashboard")
+        df_dash = carregar_dados("Dashboard")
         
-        # Seleciona Coluna A (0) e Coluna C (2), ignorando a B (1)
-        df_info_gerais = df_dash_raw.iloc[:, [0, 2]].copy()
+        # Seleciona Coluna A (0) e Coluna C (2), pulando a QTD (B)
+        # O fatiamento garante que pegamos apenas as linhas com dados reais
+        df_gerais = df_dash.iloc[:, [0, 2]].dropna().copy()
         
-        # Renomeia as colunas conforme solicitado
-        df_info_gerais.columns = [
-            "Qual o nível atual de adoção de Gêmeos Digitais", 
-            "Percentual"
-        ]
+        # Renomeando as colunas conforme sua necessidade
+        df_gerais.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "Percentual (%)"]
         
-        st.dataframe(df_info_gerais, use_container_width=True, hide_index=True)
+        # Exibição da tabela formatada
+        st.table(df_gerais)
+        
     except Exception as e:
         st.error(f"Erro ao carregar Informações Gerais: {e}")
 
-# --- SEÇÃO 2: DASHBOARD COMPLETO ---
-with st.container():
-    st.write("---")
-    st.subheader("📊 Dashboard (Dados Completos)")
-    try:
-        df_dash = carregar_dados("Dashboard")
-        st.dataframe(df_dash, use_container_width=True, hide_index=True)
-    except Exception as e:
-        st.error(f"Erro ao carregar Dashboard: {e}")
-
-# --- SEÇÃO 3: MAPA ---
+# --- SEÇÃO 2: MAPA ---
 with st.container():
     st.write("---")
     st.subheader("🗺️ Em qual estado a empresa atua principalmente")
     
     try:
         df_respostas = carregar_dados("Respostas ao formulário 1")
+        # Coluna M (índice 12)
         estados_serie = df_respostas.iloc[:, 12].dropna()
 
         pontos_validos = []
@@ -79,11 +70,12 @@ with st.container():
             df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
             st.map(df_mapa)
         else:
-            st.info("Aguardando dados de localização.")
+            st.info("Nenhum dado de localização disponível para o mapa.")
             
     except Exception as e:
         st.error(f"Erro ao processar o mapa: {e}")
 
+# --- RODAPÉ ---
 with st.container():
     st.write("---")
-    st.caption("© 2026 Pesquisa USP")
+    st.caption("© 2026 Pesquisa USP - Dados extraídos do Google Sheets")
