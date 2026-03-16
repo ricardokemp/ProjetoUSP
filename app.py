@@ -5,6 +5,7 @@ from urllib.parse import quote
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
+# Coordenadas dos estados
 COORDENADAS_ESTADOS = {
     'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
     'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
@@ -18,11 +19,11 @@ COORDENADAS_ESTADOS = {
 }
 
 @st.cache_data
-def carregar_dados(nome_aba, cabecalho=0):
+def carregar_dados(nome_aba):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
     aba_codificada = quote(nome_aba)
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
-    return pd.read_csv(url, header=cabecalho)
+    return pd.read_csv(url)
 
 # --- CABEÇALHO ---
 with st.container():
@@ -34,22 +35,22 @@ with st.container():
     st.write("---")
     st.subheader("📋 Informações Gerais")
     try:
-        # header=0 carrega a primeira linha como título
-        df_dash = carregar_dados("Dashboard", cabecalho=0)
+        # Carrega diretamente da aba "Informações Gerais" conforme sua imagem
+        df_aba_info = carregar_dados("Informações Gerais")
         
-        # O truque: A pergunta está na verdade no NOME da coluna 0
-        pergunta = df_dash.columns[0]
+        # Na sua planilha, a pergunta está na Coluna A e o % na Coluna C
+        # Vamos pegar as colunas pelos índices para não errar o nome
+        # Linhas de 0 a 4 (são as 5 opções de adoção)
+        df_display = df_aba_info.iloc[0:5, [0, 2]].copy()
         
-        # Criamos o dataframe final pegando os dados das linhas e colunas 0 e 2
-        # Selecionamos as 5 opções de resposta
-        df_final = df_dash.iloc[0:5, [0, 2]].copy()
-        df_final.columns = [pergunta, "%"]
+        # Forçamos os nomes das colunas para bater com a imagem
+        df_display.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
         
-        # Exibe como tabela estática para manter a formatação da imagem
-        st.table(df_final)
+        # st.table mantém a aparência estática e limpa do Excel
+        st.table(df_display)
         
     except Exception as e:
-        st.error(f"Erro ao organizar os dados: {e}")
+        st.error(f"Erro ao carregar Informações Gerais: {e}")
 
 # --- SEÇÃO 2: MAPA ---
 with st.container():
@@ -70,7 +71,7 @@ with st.container():
             df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
             st.map(df_mapa)
         else:
-            st.info("Aguardando dados geográficos.")
+            st.info("Aguardando novas localizações.")
             
     except Exception as e:
         st.error(f"Erro no mapa: {e}")
