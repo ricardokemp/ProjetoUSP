@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
+from urllib.parse import quote
 
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# Dicionário completo de coordenadas (Lat/Lon) dos estados brasileiros
+# Dicionário de coordenadas (Lat/Lon) dos estados brasileiros
 COORDENADAS_ESTADOS = {
     'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
     'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
@@ -20,8 +21,8 @@ COORDENADAS_ESTADOS = {
 @st.cache_data
 def carregar_dados(nome_aba):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
-    # O segredo está aqui: substituir espaços por %20 para a URL funcionar
-    aba_codificada = nome_aba.replace(" ", "%20")
+    # Codifica o nome da aba para aceitar espaços e acentos na URL
+    aba_codificada = quote(nome_aba)
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
     return pd.read_csv(url)
 
@@ -29,14 +30,17 @@ def carregar_dados(nome_aba):
 with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
-    st.write("Dados integrados da aba Dashboard e localização geográfica.")
+    st.write("Dados integrados da aba Dashboard e localização geográfica das empresas.")
 
 # --- SEÇÃO 1: DASHBOARD ---
 with st.container():
     st.write("---")
     st.subheader("📊 Dados Consolidados")
-    df_dash = carregar_dados("Dashboard")
-    st.dataframe(df_dash, use_container_width=True, hide_index=True)
+    try:
+        df_dash = carregar_dados("Dashboard")
+        st.dataframe(df_dash, use_container_width=True, hide_index=True)
+    except Exception as e:
+        st.error(f"Erro ao carregar Dashboard: {e}")
 
 # --- SEÇÃO 2: MAPA ---
 with st.container():
@@ -44,24 +48,27 @@ with st.container():
     st.subheader("🗺️ Localização das Empresas")
     
     try:
+        # Carregando a aba com nome especial
         df_respostas = carregar_dados("Respostas ao formulário 1")
-        # Coluna M é o índice 12
-        estados_na_planilha = df_respostas.iloc[:, 12].dropna()
+        
+        # Coluna M (índice 12)
+        estados_serie = df_respostas.iloc[:, 12].dropna()
 
         pontos_validos = []
-        for item in estados_na_planilha:
-            if item in COORDENADAS_ESTADOS:
-                pontos_validos.append(COORDENADAS_ESTADOS[item])
+        for estado in estados_serie:
+            # Verifica se o estado está no nosso dicionário de coordenadas
+            if estado in COORDENADAS_ESTADOS:
+                pontos_validos.append(COORDENADAS_ESTADOS[estado])
         
         if pontos_validos:
-            map_df = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
-            st.map(map_df)
+            df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
+            st.map(df_mapa)
         else:
-            st.warning("Nenhum estado válido encontrado na coluna M para plotar no mapa.")
+            st.info("Nenhuma localização específica encontrada para exibir no mapa.")
             
     except Exception as e:
         st.error(f"Erro ao processar o mapa: {e}")
 
 with st.container():
     st.write("---")
-    st.caption("Pesquisa USP 2026")
+    st.caption("© 2026 Pesquisa USP - Sistema de Monitoramento")
