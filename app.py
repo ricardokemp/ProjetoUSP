@@ -5,7 +5,7 @@ from urllib.parse import quote
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# Coordenadas dos estados
+# Coordenadas dos estados brasileiros
 COORDENADAS_ESTADOS = {
     'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
     'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
@@ -23,34 +23,33 @@ def carregar_dados(nome_aba):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
     aba_codificada = quote(nome_aba)
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
-    return pd.read_csv(url)
+    # Lemos sem cabeçalho automático para evitar deslocamento de dados
+    return pd.read_csv(url, header=None)
 
 # --- CABEÇALHO ---
 with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
-    st.write("Dados em tempo real extraídos diretamente da planilha de monitoramento.")
 
-# --- SEÇÃO 1: INFORMAÇÕES GERAIS (Identicamente à Imagem) ---
+# --- SEÇÃO 1: INFORMAÇÕES GERAIS ---
 with st.container():
     st.write("---")
     st.subheader("📋 Informações Gerais")
     try:
-        # Carrega os dados da aba Dashboard
-        df_completo = carregar_dados("Dashboard")
+        df_raw = carregar_dados("Dashboard")
         
-        # Extrai as colunas A e C (índices 0 e 2)
-        # Pegamos apenas as 5 linhas de dados conforme sua imagem
-        df_filtrado = df_completo.iloc[0:5, [0, 2]].copy()
+        # Na sua imagem, os dados começam na linha 1 (índice 1) e as colunas são A(0), B(1), C(2)
+        # Vamos pegar da linha 1 até a 5 e as colunas A e C
+        df_gerais = df_raw.iloc[1:6, [0, 2]].copy()
         
-        # Renomeia para ficar exatamente como na imagem
-        df_filtrado.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
+        # Definindo o cabeçalho exatamente como na imagem
+        df_gerais.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
         
-        # Exibe como tabela estática (idêntico ao visual da planilha)
-        st.table(df_filtrado)
+        # Exibe como tabela limpa
+        st.table(df_gerais)
         
     except Exception as e:
-        st.error(f"Erro ao formatar Informações Gerais: {e}")
+        st.error(f"Erro ao carregar Informações Gerais: {e}")
 
 # --- SEÇÃO 2: MAPA ---
 with st.container():
@@ -59,8 +58,9 @@ with st.container():
     
     try:
         df_respostas = carregar_dados("Respostas ao formulário 1")
-        # Coluna M (índice 12)
-        estados_serie = df_respostas.iloc[:, 12].dropna()
+        # Coluna M no formulário costuma ser o índice 12
+        # Como usamos header=None, a primeira linha é o cabeçalho, então pegamos do índice 1 em diante
+        estados_serie = df_respostas.iloc[1:, 12].dropna()
 
         pontos_validos = []
         for estado in estados_serie:
@@ -71,12 +71,11 @@ with st.container():
             df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
             st.map(df_mapa)
         else:
-            st.info("Aguardando novas respostas para atualização do mapa.")
+            st.info("Aguardando dados geográficos.")
             
     except Exception as e:
-        st.error(f"Erro ao carregar mapa: {e}")
+        st.error(f"Erro ao processar o mapa: {e}")
 
-# --- RODAPÉ ---
 with st.container():
     st.write("---")
-    st.caption("© 2026 Pesquisa USP - Engenharia Elétrica")
+    st.caption("© 2026 Pesquisa USP")
