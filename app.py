@@ -4,68 +4,64 @@ import pandas as pd
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# Dicionário de coordenadas dos estados brasileiros para o mapa
+# Dicionário completo de coordenadas (Lat/Lon) dos estados brasileiros
 COORDENADAS_ESTADOS = {
-    'São Paulo (SP)': [-23.5505, -46.6333],
-    'Pará (PA)': [-1.4558, -48.4902],
-    'Rio de Janeiro (RJ)': [-22.9068, -43.1729],
-    'Minas Gerais (MG)': [-19.9167, -43.9345],
-    'Distrito Federal (DF)': [-15.7801, -47.9292],
-    # Você pode adicionar outros estados conforme a necessidade
+    'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
+    'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
+    'Distrito Federal (DF)': [-15.78, -47.93], 'Espírito Santo (ES)': [-19.19, -40.34], 'Goiás (GO)': [-16.64, -49.31],
+    'Maranhão (MA)': [-2.55, -44.30], 'Mato Grosso (MT)': [-12.64, -55.42], 'Mato Grosso do Sul (MS)': [-20.51, -54.54],
+    'Minas Gerais (MG)': [-18.10, -44.38], 'Pará (PA)': [-1.45, -48.48], 'Paraíba (PB)': [-7.06, -35.55],
+    'Paraná (PR)': [-24.89, -51.55], 'Pernambuco (PE)': [-8.28, -35.07], 'Piauí (PI)': [-7.73, -42.73],
+    'Rio de Janeiro (RJ)': [-22.84, -43.15], 'Rio Grande do Norte (RN)': [-5.22, -36.52], 'Rio Grande do Sul (RS)': [-30.01, -51.22],
+    'Rondônia (RO)': [-11.50, -63.58], 'Roraima (RR)': [2.73, -62.07], 'Santa Catarina (SC)': [-27.24, -50.21],
+    'São Paulo (SP)': [-23.55, -46.63], 'Sergipe (SE)': [-10.90, -37.07], 'Tocantins (TO)': [-10.17, -48.33]
 }
 
 @st.cache_data
-def carregar_dados(aba):
+def carregar_dados(nome_aba):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba}"
+    # O segredo está aqui: substituir espaços por %20 para a URL funcionar
+    aba_codificada = nome_aba.replace(" ", "%20")
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
     return pd.read_csv(url)
 
 # --- CABEÇALHO ---
 with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
-    st.write("Informações detalhadas sobre o progresso e dados da aba Dashboard.")
+    st.write("Dados integrados da aba Dashboard e localização geográfica.")
 
 # --- SEÇÃO 1: DASHBOARD ---
 with st.container():
     st.write("---")
-    st.subheader("📊 Dados Consolidados (Dashboard)")
+    st.subheader("📊 Dados Consolidados")
     df_dash = carregar_dados("Dashboard")
     st.dataframe(df_dash, use_container_width=True, hide_index=True)
 
-# --- SEÇÃO 2: MAPA DE ATUAÇÃO ---
+# --- SEÇÃO 2: MAPA ---
 with st.container():
     st.write("---")
     st.subheader("🗺️ Localização das Empresas")
     
     try:
-        # Carrega a aba de respostas
         df_respostas = carregar_dados("Respostas ao formulário 1")
-        
-        # Pega a coluna M pelo nome exato que aparece na imagem
-        coluna_localizacao = "Em qual estado a empresa atua principalmen"
-        
-        # Se o pandas ler o nome truncado ou diferente, podemos usar o índice 12 (coluna M)
-        estados_serie = df_respostas.iloc[:, 12].dropna()
+        # Coluna M é o índice 12
+        estados_na_planilha = df_respostas.iloc[:, 12].dropna()
 
-        # Lista para armazenar as coordenadas encontradas
-        pontos_mapa = []
-
-        for estado in estados_serie:
-            if estado in COORDENADAS_ESTADOS:
-                pontos_mapa.append(COORDENADAS_ESTADOS[estado])
+        pontos_validos = []
+        for item in estados_na_planilha:
+            if item in COORDENADAS_ESTADOS:
+                pontos_validos.append(COORDENADAS_ESTADOS[item])
         
-        if pontos_mapa:
-            # Cria DataFrame necessário para o st.map
-            df_mapa = pd.DataFrame(pontos_mapa, columns=['lat', 'lon'])
-            st.map(df_mapa)
+        if pontos_validos:
+            map_df = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
+            st.map(map_df)
         else:
-            st.info("Nenhum estado mapeado encontrado na coluna M.")
+            st.warning("Nenhum estado válido encontrado na coluna M para plotar no mapa.")
             
     except Exception as e:
-        st.error(f"Erro ao gerar o mapa: {e}")
+        st.error(f"Erro ao processar o mapa: {e}")
 
-# --- RODAPÉ ---
 with st.container():
     st.write("---")
-    st.caption("Sistema Pesquisa USP | Dados integrados via Google Sheets")
+    st.caption("Pesquisa USP 2026")
