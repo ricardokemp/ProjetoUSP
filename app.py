@@ -5,7 +5,7 @@ from urllib.parse import quote
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# Coordenadas dos estados para o mapa
+# Coordenadas dos estados
 COORDENADAS_ESTADOS = {
     'Acre (AC)': [-9.02, -70.81], 'Alagoas (AL)': [-9.57, -36.78], 'Amapá (AP)': [1.41, -51.77],
     'Amazonas (AM)': [-3.41, -65.85], 'Bahia (BA)': [-12.96, -38.51], 'Ceará (CE)': [-3.71, -38.54],
@@ -29,27 +29,28 @@ def carregar_dados(nome_aba):
 with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
-    st.write("Acompanhamento do nível de maturidade em Gêmeos Digitais e distribuição geográfica.")
+    st.write("Dados em tempo real extraídos diretamente da planilha de monitoramento.")
 
-# --- SEÇÃO 1: INFORMAÇÕES GERAIS ---
+# --- SEÇÃO 1: INFORMAÇÕES GERAIS (Identicamente à Imagem) ---
 with st.container():
     st.write("---")
     st.subheader("📋 Informações Gerais")
     try:
-        df_dash = carregar_dados("Dashboard")
+        # Carrega os dados da aba Dashboard
+        df_completo = carregar_dados("Dashboard")
         
-        # Seleciona Coluna A (0) e Coluna C (2), pulando a QTD (B)
-        # O fatiamento garante que pegamos apenas as linhas com dados reais
-        df_gerais = df_dash.iloc[:, [0, 2]].dropna().copy()
+        # Extrai as colunas A e C (índices 0 e 2)
+        # Pegamos apenas as 5 linhas de dados conforme sua imagem
+        df_filtrado = df_completo.iloc[0:5, [0, 2]].copy()
         
-        # Renomeando as colunas conforme sua necessidade
-        df_gerais.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "Percentual (%)"]
+        # Renomeia para ficar exatamente como na imagem
+        df_filtrado.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
         
-        # Exibição da tabela formatada
-        st.table(df_gerais)
+        # Exibe como tabela estática (idêntico ao visual da planilha)
+        st.table(df_filtrado)
         
     except Exception as e:
-        st.error(f"Erro ao carregar Informações Gerais: {e}")
+        st.error(f"Erro ao formatar Informações Gerais: {e}")
 
 # --- SEÇÃO 2: MAPA ---
 with st.container():
@@ -70,12 +71,12 @@ with st.container():
             df_mapa = pd.DataFrame(pontos_validos, columns=['lat', 'lon'])
             st.map(df_mapa)
         else:
-            st.info("Nenhum dado de localização disponível para o mapa.")
+            st.info("Aguardando novas respostas para atualização do mapa.")
             
     except Exception as e:
-        st.error(f"Erro ao processar o mapa: {e}")
+        st.error(f"Erro ao carregar mapa: {e}")
 
 # --- RODAPÉ ---
 with st.container():
     st.write("---")
-    st.caption("© 2026 Pesquisa USP - Dados extraídos do Google Sheets")
+    st.caption("© 2026 Pesquisa USP - Engenharia Elétrica")
