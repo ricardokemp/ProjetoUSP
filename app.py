@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
 
-# Configuração da página seguindo seu padrão
+# Configuração da página
 st.set_page_config(page_title="Pesquisa USP")
 
-# Função para carregar os dados com cache para não sobrecarregar a rede
+# Função para carregar os dados com cache
 @st.cache_data
 def carregar_dados():
     # ID da planilha e nome da aba Dashboard
@@ -12,7 +12,7 @@ def carregar_dados():
     sheet_name = "Dashboard"
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     
-    # Leitura direta do CSV gerado pelo Google Sheets
+    # Leitura dos dados
     tabela = pd.read_csv(url)
     return tabela
 
@@ -21,32 +21,28 @@ with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
     st.write("Informações detalhadas sobre o progresso e dados da aba Dashboard.")
-    st.write("Desenvolvido para acompanhamento acadêmico e institucional.")
+    st.write("Dados atualizados em tempo real conforme a planilha do Google Sheets.")
 
-# Container de Filtros e Gráficos
+# Container de Exibição de Dados
 with st.container():
     st.write("---")
     
-    # Carregamento dos dados
+    # Carregamento dos dados sem filtros de período
     dados = carregar_dados()
     
-    # Seletor de período (ajustado para filtrar as linhas da planilha)
-    opcoes_periodo = ["7 Dias", "15 Dias", "30 Dias", "Tudo"]
-    selecao = st.selectbox("Selecione o período de visualização", opcoes_periodo)
-    
-    # Lógica de filtro baseada na seleção
-    if selecao != "Tudo":
-        num_linhas = int(selecao.replace(" Dias", ""))
-        dados_filtrados = dados.tail(num_linhas)
-    else:
-        dados_filtrados = dados
+    st.write("### Visualização Geral dos Dados")
+    # Exibição da tabela completa
+    st.dataframe(dados, use_container_width=True, hide_index=True)
 
-    # Exibição dos dados em formato de tabela interativa
-    st.write("### Visualização dos Dados")
-    st.dataframe(dados_filtrados, use_container_width=True)
+    # Verificação simples para exibir gráfico caso existam colunas compatíveis
+    if not dados.empty:
+        st.write("---")
+        st.subheader("Análise Visual")
+        # O Streamlit tentará plotar colunas numéricas automaticamente se você usar st.area_chart(dados)
+        # Ou você pode especificar colunas: st.area_chart(dados, x="Coluna_X", y="Coluna_Y")
+        st.line_chart(dados)
 
-    # Exemplo de gráfico de área (ajuste as colunas 'Data' e 'Valor' conforme sua planilha)
-    # Se sua planilha tiver colunas com esses nomes, o gráfico abaixo funcionará:
-    if "Data" in dados_filtrados.columns:
-        st.write("### Evolução Temporal")
-        st.area_chart(dados_filtrados, x="Data")
+# Rodapé ou Link Externo (opcional, seguindo seu modelo)
+with st.container():
+    st.write("---")
+    st.caption("Sistema de monitoramento acadêmico - Pesquisa USP")
