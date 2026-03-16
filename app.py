@@ -37,18 +37,21 @@ with st.container():
     try:
         df_aba_info = carregar_dados("Informações Gerais")
         
-        # TABELA 1: Gêmeos Digitais (Colunas A e C -> Índices 0 e 2)
+        # TABELA 1: Gêmeos Digitais (Colunas A e C)
         df_gemeos = df_aba_info.iloc[0:5, [0, 2]].copy()
         df_gemeos.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
         st.table(df_gemeos)
 
-        st.write("") # Espaçamento entre tabelas
-
-        # TABELA 2: Setor de Atuação (Colunas D e F -> Índices 3 e 5)
-        # Pegamos as 7 linhas de setores conforme a imagem (Energia até Outro)
+        # TABELA 2: Setor de Atuação (Colunas D e F)
         df_setor = df_aba_info.iloc[0:7, [3, 5]].copy()
         df_setor.columns = ["Qual o setor de atuação principal da empresa", "%"]
         st.table(df_setor)
+
+        # TABELA 3: Tamanho da Empresa (Colunas G e I -> Índices 6 e 8)
+        # Pegamos as 4 categorias (Micro, Pequena, Média, Grande)
+        df_tamanho = df_aba_info.iloc[0:4, [6, 8]].copy()
+        df_tamanho.columns = ["Qual o tamanho aproximado da empresa", "%"]
+        st.table(df_tamanho)
         
     except Exception as e:
         st.error(f"Erro ao carregar os dados das tabelas: {e}")
@@ -60,7 +63,6 @@ with st.container():
     
     try:
         df_respostas = carregar_dados("Respostas ao formulário 1")
-        # Coluna M (índice 12)
         estados_serie = df_respostas.iloc[:, 12].dropna()
 
         pontos_validos = []
