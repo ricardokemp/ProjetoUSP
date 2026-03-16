@@ -1,9 +1,18 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
+
+# Dicionário de coordenadas dos estados brasileiros para o mapa
+COORDENADAS_ESTADOS = {
+    'São Paulo (SP)': [-23.5505, -46.6333],
+    'Pará (PA)': [-1.4558, -48.4902],
+    'Rio de Janeiro (RJ)': [-22.9068, -43.1729],
+    'Minas Gerais (MG)': [-19.9167, -43.9345],
+    'Distrito Federal (DF)': [-15.7801, -47.9292],
+    # Você pode adicionar outros estados conforme a necessidade
+}
 
 @st.cache_data
 def carregar_dados(aba):
@@ -15,53 +24,48 @@ def carregar_dados(aba):
 with st.container():
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
-    st.write("Monitoramento de dados da aba Dashboard e mapeamento de respostas.")
+    st.write("Informações detalhadas sobre o progresso e dados da aba Dashboard.")
 
 # --- SEÇÃO 1: DASHBOARD ---
 with st.container():
     st.write("---")
     st.subheader("📊 Dados Consolidados (Dashboard)")
-    try:
-        df_dash = carregar_dados("Dashboard")
-        st.dataframe(df_dash, use_container_width=True, hide_index=True)
-    except Exception as e:
-        st.error(f"Erro ao carregar aba Dashboard: {e}")
+    df_dash = carregar_dados("Dashboard")
+    st.dataframe(df_dash, use_container_width=True, hide_index=True)
 
-# --- SEÇÃO 2: MAPA DE RESPOSTAS ---
+# --- SEÇÃO 2: MAPA DE ATUAÇÃO ---
 with st.container():
     st.write("---")
-    st.subheader("🗺️ Mapa de Localização (Coluna M)")
+    st.subheader("🗺️ Localização das Empresas")
     
     try:
-        # Carregando a aba de respostas
+        # Carrega a aba de respostas
         df_respostas = carregar_dados("Respostas ao formulário 1")
         
-        # Selecionando a coluna M (índice 12 no Python, pois começa em 0)
-        # Se a coluna tiver um nome específico, você pode usar df_respostas['Nome Da Coluna']
-        coluna_m = df_respostas.iloc[:, 12].dropna() 
+        # Pega a coluna M pelo nome exato que aparece na imagem
+        coluna_localizacao = "Em qual estado a empresa atua principalmen"
         
-        st.write(f"Total de pontos identificados na Coluna M: {len(coluna_m)}")
+        # Se o pandas ler o nome truncado ou diferente, podemos usar o índice 12 (coluna M)
+        estados_serie = df_respostas.iloc[:, 12].dropna()
 
-        # NOTA: O Streamlit requer latitude e longitude para exibir o mapa nativo.
-        # Se a coluna M tiver apenas nomes de cidades, este bloco simula a plotagem.
-        # Caso você tenha as coordenadas, substitua pela lógica real abaixo:
+        # Lista para armazenar as coordenadas encontradas
+        pontos_mapa = []
+
+        for estado in estados_serie:
+            if estado in COORDENADAS_ESTADOS:
+                pontos_mapa.append(COORDENADAS_ESTADOS[estado])
         
-        if not coluna_m.empty:
-            # Exemplo de como preparar dados para o mapa (lat/lon)
-            # Aqui geramos coordenadas aleatórias apenas para ilustrar o componente, 
-            # já que nomes de texto puro (ex: "São Paulo") precisam de geocodificação.
-            map_data = pd.DataFrame(
-                np.random.randn(len(coluna_m), 2) / [50, 50] + [-23.55, -46.63],
-                columns=['lat', 'lon']
-            )
-            st.map(map_data)
+        if pontos_mapa:
+            # Cria DataFrame necessário para o st.map
+            df_mapa = pd.DataFrame(pontos_mapa, columns=['lat', 'lon'])
+            st.map(df_mapa)
         else:
-            st.info("A coluna M está vazia ou não contém dados válidos de localização.")
+            st.info("Nenhum estado mapeado encontrado na coluna M.")
             
     except Exception as e:
-        st.warning("Não foi possível processar o mapa. Verifique se a aba 'Respostas ao formulário 1' existe e possui dados na coluna M.")
+        st.error(f"Erro ao gerar o mapa: {e}")
 
 # --- RODAPÉ ---
 with st.container():
     st.write("---")
-    st.caption("Aplicação Pesquisa USP | Dados via Google Sheets")
+    st.caption("Sistema Pesquisa USP | Dados integrados via Google Sheets")
