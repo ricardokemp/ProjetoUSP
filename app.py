@@ -29,13 +29,15 @@ def carregar_dados(nome_aba):
 st.subheader("Portal de Indicadores")
 st.title("Pesquisa USP")
 
-# --- NOVA SEÇÃO: DADOS DE TRATAMENTO ---
+# --- NOVO: SEÇÃO TRATAMENTO (COLUNAS A ATÉ H) ---
 st.write("---")
 st.subheader("⚙️ Tratamento de Dados")
 
 try:
-    df_tratamento = carregar_dados("Tratamento")
-    st.dataframe(df_tratamento, use_container_width=True, hide_index=True)
+    df_tratamento_bruto = carregar_dados("Tratamento")
+    # Seleciona colunas de A (0) até H (7)
+    df_tratamento_filtrado = df_tratamento_bruto.iloc[:, 0:8].copy()
+    st.dataframe(df_tratamento_filtrado, use_container_width=True, hide_index=True)
 except Exception as e:
     st.error(f"Erro ao carregar a aba Tratamento: {e}")
 
@@ -49,25 +51,25 @@ try:
     col1, col2 = st.columns(2)
 
     with col1:
-        # 1. Gêmeos Digitais
+        # 1. Gêmeos Digitais (Colunas A e C)
         df_gemeos = df_aba_info.iloc[0:5, [0, 2]].copy()
-        df_gemeos.columns = ["Nível de adoção de Gêmeos Digitais", "%"]
+        df_gemeos.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
         st.table(df_gemeos)
 
-        # 3. Tamanho da Empresa
+        # 3. Tamanho da Empresa (Colunas G e I)
         df_tamanho = df_aba_info.iloc[0:4, [6, 8]].copy()
-        df_tamanho.columns = ["Tamanho aproximado da empresa", "%"]
+        df_tamanho.columns = ["Qual o tamanho aproximado da empresa", "%"]
         st.table(df_tamanho)
 
     with col2:
-        # 2. Setor de Atuação
+        # 2. Setor de Atuação (Colunas D e F)
         df_setor = df_aba_info.iloc[0:7, [3, 5]].copy()
-        df_setor.columns = ["Setor de atuação principal", "%"]
+        df_setor.columns = ["Qual o setor de atuação principal da empresa", "%"]
         st.table(df_setor)
 
-        # 4. Estados de Atuação
+        # 4. Estados de Atuação (Colunas J e L)
         df_local = df_aba_info.iloc[0:28, [9, 11]].copy()
-        df_local.columns = ["Estado de atuação principal", "%"]
+        df_local.columns = ["Em qual estado a empresa atua principalmente", "%"]
         st.table(df_local)
     
 except Exception as e:
@@ -79,6 +81,7 @@ st.subheader("🗺️ Localização Geográfica (Respostas Individuais)")
 
 try:
     df_respostas = carregar_dados("Respostas ao formulário 1")
+    # Coluna M (índice 12) contém o estado
     estados_respondidos = df_respostas.iloc[:, 12].dropna()
 
     pontos_mapa = []
