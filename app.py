@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
 from urllib.parse import quote
+from datetime import datetime
 import time
 
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# 1. Configuração do Cache com TTL de 10 segundos
-# Isso garante que, ao recarregar, o Streamlit busque os dados da URL novamente
+# 1. Configuração do Cache com expiração de 10 segundos
 @st.cache_data(ttl=10)
 def carregar_dados(nome_aba):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
@@ -15,9 +15,8 @@ def carregar_dados(nome_aba):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
     return pd.read_csv(url)
 
-# 2. Comando para atualizar a página automaticamente a cada 10 segundos
-st.logo("https://upload.wikimedia.org/wikipedia/pt/thumb/f/f3/Logo_USP.svg/1200px-Logo_USP.svg.png", size="large") # Opcional: logo USP
-st_autorefresh = st.empty() 
+# Registro do momento exato da atualização
+agora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
 # Coordenadas para o mapa
 COORDENADAS_ESTADOS = {
@@ -33,8 +32,13 @@ COORDENADAS_ESTADOS = {
 }
 
 # --- CABEÇALHO ---
-st.subheader("Portal de Indicadores")
-st.title("Pesquisa USP")
+col_tit, col_atualizacao = st.columns([3, 1])
+with col_tit:
+    st.subheader("Portal de Indicadores")
+    st.title("Pesquisa USP")
+with col_atualizacao:
+    st.write("") # Espaçamento
+    st.info(f"**Última atualização:**\n\n{agora}")
 
 # --- SEÇÃO TRATAMENTO ---
 st.write("---")
@@ -97,8 +101,8 @@ except Exception as e:
     st.error(f"Erro ao gerar o mapa: {e}")
 
 st.write("---")
-st.caption(f"© 2026 Pesquisa USP. Última atualização: {time.strftime('%H:%M:%S')}")
+st.caption(f"© 2026 Pesquisa USP. Dados sincronizados em: {agora}. Próxima verificação em 10 segundos.")
 
-# Script para forçar o rerun a cada 10 segundos
+# Pausa de 10 segundos e recarregamento automático
 time.sleep(10)
 st.rerun()
