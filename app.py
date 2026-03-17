@@ -21,7 +21,6 @@ COORDENADAS_ESTADOS = {
 @st.cache_data
 def carregar_dados(nome_aba):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
-    # A codificação correta evita o erro de 'ascii' que apareceu no seu Streamlit
     aba_codificada = quote(nome_aba)
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
     return pd.read_csv(url)
@@ -30,6 +29,16 @@ def carregar_dados(nome_aba):
 st.subheader("Portal de Indicadores")
 st.title("Pesquisa USP")
 
+# --- NOVA SEÇÃO: DADOS DE TRATAMENTO ---
+st.write("---")
+st.subheader("⚙️ Tratamento de Dados")
+
+try:
+    df_tratamento = carregar_dados("Tratamento")
+    st.dataframe(df_tratamento, use_container_width=True, hide_index=True)
+except Exception as e:
+    st.error(f"Erro ao carregar a aba Tratamento: {e}")
+
 # --- SEÇÃO: INFORMAÇÕES GERAIS ---
 st.write("---")
 st.subheader("📋 Informações Gerais")
@@ -37,32 +46,32 @@ st.subheader("📋 Informações Gerais")
 try:
     df_aba_info = carregar_dados("Informações Gerais")
     
-    # 1. Gêmeos Digitais (A e C)
-    df_gemeos = df_aba_info.iloc[0:5, [0, 2]].copy()
-    df_gemeos.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
-    st.table(df_gemeos)
+    col1, col2 = st.columns(2)
 
-    # 2. Setor de Atuação (D e F)
-    df_setor = df_aba_info.iloc[0:7, [3, 5]].copy()
-    df_setor.columns = ["Qual o setor de atuação principal da empresa", "%"]
-    st.table(df_setor)
+    with col1:
+        # 1. Gêmeos Digitais
+        df_gemeos = df_aba_info.iloc[0:5, [0, 2]].copy()
+        df_gemeos.columns = ["Nível de adoção de Gêmeos Digitais", "%"]
+        st.table(df_gemeos)
 
-    # 3. Tamanho da Empresa (G e I)
-    df_tamanho = df_aba_info.iloc[0:4, [6, 8]].copy()
-    df_tamanho.columns = ["Qual o tamanho aproximado da empresa", "%"]
-    st.table(df_tamanho)
+        # 3. Tamanho da Empresa
+        df_tamanho = df_aba_info.iloc[0:4, [6, 8]].copy()
+        df_tamanho.columns = ["Tamanho aproximado da empresa", "%"]
+        st.table(df_tamanho)
 
-    # 4. Estados de Atuação (J e L)
-    # Pegamos todas as linhas da lista de estados (até a 27, que cobre todos os estados + Outros)
-    df_local = df_aba_info.iloc[0:28, [9, 11]].copy()
-    df_local.columns = ["Em qual estado a empresa atua principalmente", "%"]
-    
-    # Filtramos para mostrar apenas estados que possuem participação (> 0%) ou nomes válidos
-    # Isso evita mostrar uma lista gigante de 0% se você preferir algo mais enxuto
-    st.table(df_local)
+    with col2:
+        # 2. Setor de Atuação
+        df_setor = df_aba_info.iloc[0:7, [3, 5]].copy()
+        df_setor.columns = ["Setor de atuação principal", "%"]
+        st.table(df_setor)
+
+        # 4. Estados de Atuação
+        df_local = df_aba_info.iloc[0:28, [9, 11]].copy()
+        df_local.columns = ["Estado de atuação principal", "%"]
+        st.table(df_local)
     
 except Exception as e:
-    st.error(f"Erro ao processar as tabelas: {e}")
+    st.error(f"Erro ao processar as tabelas de informações: {e}")
 
 # --- SEÇÃO: MAPA ---
 st.write("---")
@@ -70,7 +79,6 @@ st.subheader("🗺️ Localização Geográfica (Respostas Individuais)")
 
 try:
     df_respostas = carregar_dados("Respostas ao formulário 1")
-    # Coluna M (índice 12) contém o estado selecionado no formulário
     estados_respondidos = df_respostas.iloc[:, 12].dropna()
 
     pontos_mapa = []
