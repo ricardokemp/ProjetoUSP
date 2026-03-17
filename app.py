@@ -3,11 +3,16 @@ import pandas as pd
 from urllib.parse import quote
 from datetime import datetime
 import time
+import pytz # Importação necessária para ajustar o fuso horário
 
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
 
-# 1. Configuração do Cache com expiração de 10 segundos
+# 1. Configuração do Fuso Horário de Brasília
+fuso_brasilia = pytz.timezone('America/Sao_Paulo')
+agora = datetime.now(fuso_brasilia).strftime("%d/%m/%Y %H:%M:%S")
+
+# 2. Configuração do Cache com expiração de 10 segundos
 @st.cache_data(ttl=10)
 def carregar_dados(nome_aba):
     sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
@@ -15,8 +20,7 @@ def carregar_dados(nome_aba):
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
     return pd.read_csv(url)
 
-# Registro do momento exato da atualização
-agora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+# --- O RESTANTE DO SEU CÓDIGO SEGUE ABAIXO ---
 
 # Coordenadas para o mapa
 COORDENADAS_ESTADOS = {
@@ -37,7 +41,7 @@ with col_tit:
     st.subheader("Portal de Indicadores")
     st.title("Pesquisa USP")
 with col_atualizacao:
-    st.write("") # Espaçamento
+    st.write("") 
     st.info(f"**Última atualização:**\n\n{agora}")
 
 # --- SEÇÃO TRATAMENTO ---
