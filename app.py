@@ -1,9 +1,23 @@
 import streamlit as st
 import pandas as pd
 from urllib.parse import quote
+import time
 
 # Configuração da página
 st.set_page_config(page_title="Pesquisa USP", layout="wide")
+
+# 1. Configuração do Cache com TTL de 10 segundos
+# Isso garante que, ao recarregar, o Streamlit busque os dados da URL novamente
+@st.cache_data(ttl=10)
+def carregar_dados(nome_aba):
+    sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
+    aba_codificada = quote(nome_aba)
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
+    return pd.read_csv(url)
+
+# 2. Comando para atualizar a página automaticamente a cada 10 segundos
+st.logo("https://upload.wikimedia.org/wikipedia/pt/thumb/f/f3/Logo_USP.svg/1200px-Logo_USP.svg.png", size="large") # Opcional: logo USP
+st_autorefresh = st.empty() 
 
 # Coordenadas para o mapa
 COORDENADAS_ESTADOS = {
@@ -18,24 +32,16 @@ COORDENADAS_ESTADOS = {
     'São Paulo (SP)': [-23.55, -46.63], 'Sergipe (SE)': [-10.90, -37.07], 'Tocantins (TO)': [-10.17, -48.33]
 }
 
-@st.cache_data
-def carregar_dados(nome_aba):
-    sheet_id = "1zPn9qNa1EuuoDh1WAmTAPMb_qIPnxO3qchOWZ-z9wKk"
-    aba_codificada = quote(nome_aba)
-    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/gviz/tq?tqx=out:csv&sheet={aba_codificada}"
-    return pd.read_csv(url)
-
 # --- CABEÇALHO ---
 st.subheader("Portal de Indicadores")
 st.title("Pesquisa USP")
 
-# --- NOVO: SEÇÃO TRATAMENTO (COLUNAS A ATÉ H) ---
+# --- SEÇÃO TRATAMENTO ---
 st.write("---")
 st.subheader("⚙️ Tratamento de Dados")
 
 try:
     df_tratamento_bruto = carregar_dados("Tratamento")
-    # Seleciona colunas de A (0) até H (7)
     df_tratamento_filtrado = df_tratamento_bruto.iloc[:, 0:8].copy()
     st.dataframe(df_tratamento_filtrado, use_container_width=True, hide_index=True)
 except Exception as e:
@@ -47,31 +53,25 @@ st.subheader("📋 Informações Gerais")
 
 try:
     df_aba_info = carregar_dados("Informações Gerais")
-    
     col1, col2 = st.columns(2)
 
     with col1:
-        # 1. Gêmeos Digitais (Colunas A e C)
         df_gemeos = df_aba_info.iloc[0:5, [0, 2]].copy()
         df_gemeos.columns = ["Qual o nível atual de adoção de Gêmeos Digitais", "%"]
         st.table(df_gemeos)
 
-        # 3. Tamanho da Empresa (Colunas G e I)
         df_tamanho = df_aba_info.iloc[0:4, [6, 8]].copy()
         df_tamanho.columns = ["Qual o tamanho aproximado da empresa", "%"]
         st.table(df_tamanho)
 
     with col2:
-        # 2. Setor de Atuação (Colunas D e F)
         df_setor = df_aba_info.iloc[0:7, [3, 5]].copy()
         df_setor.columns = ["Qual o setor de atuação principal da empresa", "%"]
         st.table(df_setor)
 
-        # 4. Estados de Atuação (Colunas J e L)
         df_local = df_aba_info.iloc[0:28, [9, 11]].copy()
         df_local.columns = ["Em qual estado a empresa atua principalmente", "%"]
         st.table(df_local)
-    
 except Exception as e:
     st.error(f"Erro ao processar as tabelas de informações: {e}")
 
@@ -81,7 +81,6 @@ st.subheader("🗺️ Localização Geográfica (Respostas Individuais)")
 
 try:
     df_respostas = carregar_dados("Respostas ao formulário 1")
-    # Coluna M (índice 12) contém o estado
     estados_respondidos = df_respostas.iloc[:, 12].dropna()
 
     pontos_mapa = []
@@ -93,10 +92,13 @@ try:
         df_mapa = pd.DataFrame(pontos_mapa, columns=['lat', 'lon'])
         st.map(df_mapa)
     else:
-        st.info("Aguardando dados de localização para preencher o mapa.")
-        
+        st.info("Aguardando dados de localização.")
 except Exception as e:
     st.error(f"Erro ao gerar o mapa: {e}")
 
 st.write("---")
-st.caption("© 2026 Pesquisa USP - Dados extraídos em tempo real.")
+st.caption(f"© 2026 Pesquisa USP. Última atualização: {time.strftime('%H:%M:%S')}")
+
+# Script para forçar o rerun a cada 10 segundos
+time.sleep(10)
+st.rerun()
